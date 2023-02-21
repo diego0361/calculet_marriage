@@ -1,18 +1,16 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-
 class ExpenseModel {
   final String? id;
-  final String? title;
-  final String? value;
-  final bool? isPaid;
+  final String title;
+  final double value;
+  final bool isPaid;
 
   const ExpenseModel({
     this.id,
-    @required this.title,
-    @required this.value,
-    @required this.isPaid,
+    required this.title,
+    required this.value,
+    required this.isPaid,
   });
 
   Map<String, dynamic> toMap() {

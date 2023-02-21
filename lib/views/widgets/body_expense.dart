@@ -1,10 +1,10 @@
-// ignore_for_file: avoid_print
-
-//import 'package:calculate_marriage/views/expense_controller.dart';
+import 'package:brasil_fields/brasil_fields.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/expense_model.dart';
+import 'card_totals_money.dart';
 
 class BodyExpense extends StatefulWidget {
   const BodyExpense({Key? key}) : super(key: key);
@@ -14,8 +14,6 @@ class BodyExpense extends StatefulWidget {
 }
 
 class _BodyExpenseState extends State<BodyExpense> {
-  //final ExpenseController expenseController = ExpenseController();
-
   @override
   void initState() {
     getExpense();
@@ -28,89 +26,79 @@ class _BodyExpenseState extends State<BodyExpense> {
   final titleController = TextEditingController();
   final valueController = TextEditingController();
 
-  double totalValue = 0;
+  double totalExpense = 0;
   double totalPending = 0;
   double totalPaid = 0;
 
-  Future<void> addExpense() {
-    // Call the user's CollectionReference to add a new user
-    return expensesCollection
-        .add(
-          ExpenseModel(
-            title: titleController.text,
-            value: valueController.text,
-            isPaid: false,
-          ).toMap(),
-        )
-        .then(
-          (value) => print("Expense Added"),
-        )
+  Future<void> addExpense() async {
+    if (titleController.text.isEmpty || valueController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Os campos não podem ficarem vazio')),
+      );
+      return;
+    }
+    expensesCollection
+        .add(ExpenseModel(
+          title: titleController.text,
+          value: double.tryParse(valueController.text.replaceAll('.', '')) ?? 0,
+          isPaid: false,
+        ).toMap())
+        .then((value) => debugPrint("Expense Added"))
         .whenComplete(
       () {
-        titleController.text = '';
-        valueController.text = '';
+        titleController.clear();
+        valueController.clear();
         getExpense();
       },
-    ).catchError(
-      (error) => print("Failed to add expense: $error"),
-    );
+    ).catchError((error) => debugPrint("Failed to add expense: $error"));
   }
 
-  List<Map<String, dynamic>> expensesList = [];
-  Future<void> getExpense() {
+  List<ExpenseModel> expensesList = [];
+  Future<void> getExpense() async {
     return FirebaseFirestore.instance
         .collection('expenses')
         .get()
         .then((QuerySnapshot querySnapshot) {
       expensesList = [];
-      totalValue = 0;
+      totalExpense = 0;
       totalPaid = 0;
       totalPending = 0;
 
       for (var doc in querySnapshot.docs) {
-        if (doc['isPaid']) {
-          totalPaid += double.parse(doc['value']);
-        } else {
-          totalPending += double.parse(doc['value']);
-        }
-
-        totalValue += double.parse(doc['value']);
-
-        print(doc);
-
-        expensesList.add(
-          {
-            'id': doc.reference.id,
-            'title': doc['title'],
-            'value': doc['value'],
-            'isPaid': doc['isPaid'],
-          },
+        final expense = ExpenseModel(
+          id: doc.reference.id,
+          title: doc['title'],
+          value: double.tryParse(doc['value'].toString()) ?? 0,
+          isPaid: doc['isPaid'],
         );
+        if (expense.isPaid) {
+          totalPaid += expense.value;
+        } else {
+          totalPending += expense.value;
+        }
+        totalExpense += expense.value;
+        expensesList.add(expense);
       }
-    }).whenComplete(
-      () => setState(() {}),
-    );
+    }).whenComplete(() => setState(() {}));
   }
 
-  Future<void> updateExpense(String id, bool isPaid) {
-    return expensesCollection
+  Future<void> updateExpense(String id, bool isPaid) async {
+    expensesCollection
         .doc(id)
         .update({'isPaid': isPaid})
-        .then((value) => print("Expense Updated"))
+        .then((value) => debugPrint("Expense Updated"))
         .whenComplete(() => getExpense())
-        .catchError(
-          (error) => print("Failed to update user: $error"),
-        );
+        .catchError((error) => debugPrint("Failed to update user: $error"));
   }
 
-  Future<void> deleteUser(String id) {
-    return expensesCollection
+  Future<void> deleteUser(String id) async {
+    expensesCollection
         .doc(id)
         .delete()
-        .then((value) => print("Expense Deleted"))
+        .then((value) => debugPrint("Expense Deleted"))
         .whenComplete(() => getExpense())
         .catchError(
-          (error) => print("Failed to delete user: $error"),
+          (error) => debugPrint("Failed to delete user: $error"),
         );
   }
 
@@ -134,6 +122,10 @@ class _BodyExpenseState extends State<BodyExpense> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextFormField(
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                RealInputFormatter(),
+              ],
               decoration: InputDecoration(
                 hintText: 'Valor',
                 border: OutlineInputBorder(
@@ -143,7 +135,13 @@ class _BodyExpenseState extends State<BodyExpense> {
               controller: valueController,
             ),
           ),
-          TextButton(
+          ElevatedButton(
+            style: ButtonStyle(
+              padding: MaterialStateProperty.all(
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              backgroundColor: MaterialStateProperty.all(Colors.purple),
+            ),
             onPressed: () {
               addExpense();
             },
@@ -162,32 +160,30 @@ class _BodyExpenseState extends State<BodyExpense> {
                     icon: const Icon(Icons.delete),
                     onPressed: () {
                       setState(() {
-                        deleteUser(expense['id']);
+                        deleteUser(expense.id ?? '');
                       });
                     },
                   ),
                   leading: IconButton(
-                    icon: const Icon(Icons.edit),
+                    icon: const Icon(Icons.assignment_turned_in_outlined),
                     onPressed: () {
                       setState(() {
                         updateExpense(
-                          expense['id'],
-                          !expense['isPaid'],
+                          expense.id ?? '',
+                          !expense.isPaid,
                         );
                       });
                     },
                   ),
-                  title: Text(expense['title']),
+                  title: Text(expense.title),
                   subtitle: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       Text(
-                        "R\$ ${expense['value']}",
+                        "R\$ ${expense.value}",
                       ),
                       Text(
-                        expense['isPaid'] == false
-                            ? 'PENDENTE'
-                            : 'NÃO PENDENTE ',
+                        expense.isPaid == false ? 'PENDENTE' : 'NÃO PENDENTE ',
                       ),
                     ],
                   ),
@@ -195,11 +191,13 @@ class _BodyExpenseState extends State<BodyExpense> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 18.0),
-            child: Text(
-              'Total: $totalValue Total pendente: $totalPending Total pago: $totalPaid',
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CardTotalsMoney(totalString: 'Total Pago: $totalPaid'),
+              CardTotalsMoney(totalString: 'Total Pendente : $totalPending'),
+              CardTotalsMoney(totalString: 'Total Despesas: $totalExpense'),
+            ],
           )
         ],
       ),
