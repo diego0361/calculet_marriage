@@ -1,4 +1,4 @@
-import 'package:calculate_marriage/views/list_home.dart';
+import 'package:calculate_marriage/views/add_new_expense.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -17,11 +17,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Calculadora do Amor',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const ListHome(),
+      home: const AddUser('Aluguel', '2500', false),
     );
   }
 }
