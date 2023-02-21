@@ -28,7 +28,11 @@ class _BodyExpenseState extends State<BodyExpense> {
   final titleController = TextEditingController();
   final valueController = TextEditingController();
 
-  Future<void> addUser() {
+  double totalValue = 0;
+  double totalPending = 0;
+  double totalPaid = 0;
+
+  Future<void> addExpense() {
     // Call the user's CollectionReference to add a new user
     return expensesCollection
         .add(
@@ -41,23 +45,40 @@ class _BodyExpenseState extends State<BodyExpense> {
         .then(
           (value) => print("Expense Added"),
         )
-        .whenComplete(() => getExpense())
-        .catchError(
-          (error) => print("Failed to add expense: $error"),
-        );
+        .whenComplete(
+      () {
+        titleController.text = '';
+        valueController.text = '';
+        getExpense();
+      },
+    ).catchError(
+      (error) => print("Failed to add expense: $error"),
+    );
   }
 
-  List<Map<String, dynamic>> usersList = [];
+  List<Map<String, dynamic>> expensesList = [];
   Future<void> getExpense() {
     return FirebaseFirestore.instance
         .collection('expenses')
         .get()
         .then((QuerySnapshot querySnapshot) {
-      usersList = [];
+      expensesList = [];
+      totalValue = 0;
+      totalPaid = 0;
+      totalPending = 0;
+
       for (var doc in querySnapshot.docs) {
+        if (doc['isPaid']) {
+          totalPaid += double.parse(doc['value']);
+        } else {
+          totalPending += double.parse(doc['value']);
+        }
+
+        totalValue += double.parse(doc['value']);
+
         print(doc);
 
-        usersList.add(
+        expensesList.add(
           {
             'id': doc.reference.id,
             'title': doc['title'],
@@ -71,7 +92,7 @@ class _BodyExpenseState extends State<BodyExpense> {
     );
   }
 
-  Future<void> updateUser(String id, bool isPaid) {
+  Future<void> updateExpense(String id, bool isPaid) {
     return expensesCollection
         .doc(id)
         .update({'isPaid': isPaid})
@@ -95,73 +116,93 @@ class _BodyExpenseState extends State<BodyExpense> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TextFormField(
-          decoration: const InputDecoration(
-            hintText: 'Titulo',
-          ),
-          controller: titleController,
-        ),
-        TextFormField(
-          decoration: const InputDecoration(
-            hintText: 'Valor',
-          ),
-          controller: valueController,
-        ),
-        TextButton(
-          onPressed: () {
-            setState(() {
-              addUser;
-            });
-          },
-          child: const Text(
-            "Adicionar despesa",
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: usersList.length,
-            shrinkWrap: true,
-            itemBuilder: (context, index) {
-              var user = usersList[index];
-              return ListTile(
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () {
-                    setState(() {
-                      deleteUser(user['id']);
-                    });
-                  },
+    return SizedBox(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextFormField(
+              decoration: InputDecoration(
+                hintText: 'Titulo',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                leading: IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () {
-                    setState(() {
-                      updateUser(
-                        user['id'],
-                        !user['isPaid'],
-                      );
-                    });
-                  },
+              ),
+              controller: titleController,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextFormField(
+              decoration: InputDecoration(
+                hintText: 'Valor',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                title: Text(user['title']),
-                subtitle: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Text(
-                      "R\$ ${user['value']}",
-                    ),
-                    Text(
-                      user['isPaid'] == false ? 'Não Pago' : 'Pago',
-                    ),
-                  ],
-                ),
-              );
+              ),
+              controller: valueController,
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              addExpense();
             },
+            child: const Text(
+              "Adicionar despesa",
+            ),
           ),
-        )
-      ],
+          Expanded(
+            child: ListView.builder(
+              itemCount: expensesList.length,
+              shrinkWrap: true,
+              itemBuilder: (context, index) {
+                var expense = expensesList[index];
+                return ListTile(
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () {
+                      setState(() {
+                        deleteUser(expense['id']);
+                      });
+                    },
+                  ),
+                  leading: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () {
+                      setState(() {
+                        updateExpense(
+                          expense['id'],
+                          !expense['isPaid'],
+                        );
+                      });
+                    },
+                  ),
+                  title: Text(expense['title']),
+                  subtitle: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Text(
+                        "R\$ ${expense['value']}",
+                      ),
+                      Text(
+                        expense['isPaid'] == false
+                            ? 'PENDENTE'
+                            : 'NÃO PENDENTE ',
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 18.0),
+            child: Text(
+              'Total: $totalValue Total pendente: $totalPending Total pago: $totalPaid',
+            ),
+          )
+        ],
+      ),
     );
   }
 }
