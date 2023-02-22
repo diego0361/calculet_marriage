@@ -105,101 +105,145 @@ class _BodyExpenseState extends State<BodyExpense> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextFormField(
-              decoration: InputDecoration(
-                hintText: 'Titulo',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              controller: titleController,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextFormField(
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                RealInputFormatter(),
-              ],
-              decoration: InputDecoration(
-                hintText: 'Valor',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              controller: valueController,
-            ),
-          ),
-          ElevatedButton(
-            style: ButtonStyle(
-              padding: MaterialStateProperty.all(
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              backgroundColor: MaterialStateProperty.all(Colors.purple),
-            ),
-            onPressed: () {
-              addExpense();
-            },
-            child: const Text(
-              "Adicionar despesa",
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: expensesList.length,
-              shrinkWrap: true,
-              itemBuilder: (context, index) {
-                var expense = expensesList[index];
-                return ListTile(
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      setState(() {
-                        deleteUser(expense.id ?? '');
-                      });
-                    },
-                  ),
-                  leading: IconButton(
-                    icon: const Icon(Icons.assignment_turned_in_outlined),
-                    onPressed: () {
-                      setState(() {
-                        updateExpense(
-                          expense.id ?? '',
-                          !expense.isPaid,
-                        );
-                      });
-                    },
-                  ),
-                  title: Text(expense.title),
-                  subtitle: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Text(
-                        "R\$ ${expense.value}",
-                      ),
-                      Text(
-                        expense.isPaid == false ? 'PENDENTE' : 'NÃO PENDENTE ',
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CardTotalsMoney(totalString: 'Total Pago: $totalPaid'),
-              CardTotalsMoney(totalString: 'Total Pendente : $totalPending'),
-              CardTotalsMoney(totalString: 'Total Despesas: $totalExpense'),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 228, 203, 135),
+              Color.fromARGB(255, 91, 18, 100)
             ],
-          )
-        ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextFormField(
+                decoration: InputDecoration(
+                  hintText: 'Titulo',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                controller: titleController,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextFormField(
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  RealInputFormatter(),
+                ],
+                decoration: InputDecoration(
+                  hintText: 'Valor',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                controller: valueController,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: ElevatedButton(
+                style: ButtonStyle(
+                  padding: MaterialStateProperty.all(
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
+                  backgroundColor: MaterialStateProperty.all(Colors.purple),
+                ),
+                onPressed: () {
+                  addExpense();
+                },
+                child: const Text(
+                  "Adicionar despesa",
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: expensesList.length,
+                shrinkWrap: true,
+                itemBuilder: (context, index) {
+                  var expense = expensesList[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 5,
+                      horizontal: 12,
+                    ),
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        color: Color.fromARGB(255, 225, 194, 233),
+                      ),
+                      child: ListTile(
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () {
+                            setState(() {
+                              deleteUser(expense.id ?? '');
+                            });
+                          },
+                        ),
+                        leading: IconButton(
+                          icon: Icon(
+                            expense.isPaid == false
+                                ? Icons.check_box_outline_blank
+                                : Icons.check_box,
+                            color: Colors.purple,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              updateExpense(
+                                expense.id ?? '',
+                                !expense.isPaid,
+                              );
+                            });
+                          },
+                        ),
+                        title: Text(expense.title),
+                        subtitle: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 180),
+                              child: Text(
+                                "R\$ ${expense.value}",
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: Text(
+                                expense.isPaid == false
+                                    ? 'PENDENTE'
+                                    : 'NÃO PENDENTE ',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CardTotalsMoney(totalString: 'Total Pago: $totalPaid'),
+                  CardTotalsMoney(
+                      totalString: 'Total Pendente : $totalPending'),
+                  CardTotalsMoney(totalString: 'Total Despesas: $totalExpense'),
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
