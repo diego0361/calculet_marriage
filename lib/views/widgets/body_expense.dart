@@ -1,4 +1,5 @@
 import 'package:brasil_fields/brasil_fields.dart';
+import 'package:calculate_marriage/cards/cards_expenses.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +19,18 @@ class _BodyExpenseState extends State<BodyExpense> {
   void initState() {
     getExpense();
     super.initState();
+  }
+
+  List<ExpenseModel> expensesSearch = [];
+
+  void updateListExpenses(String value) {
+    expensesSearch = expensesList.where((element) {
+      return element.title.toLowerCase().contains(value.toLowerCase());
+    }).toList();
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   CollectionReference expensesCollection =
@@ -104,6 +117,7 @@ class _BodyExpenseState extends State<BodyExpense> {
 
   @override
   Widget build(BuildContext context) {
+    bool isVisible = false;
     return SizedBox(
       child: DecoratedBox(
         decoration: const BoxDecoration(
@@ -118,6 +132,28 @@ class _BodyExpenseState extends State<BodyExpense> {
         ),
         child: Column(
           children: [
+            TextField(
+              onChanged: (value) {
+                updateListExpenses(value);
+                setState(() {
+                  isVisible = !isVisible;
+                });
+              },
+              decoration: InputDecoration(
+                labelText: 'Pesquisar',
+                filled: true,
+                fillColor: Colors.purple,
+                suffixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.search),
+            ),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: TextFormField(
@@ -165,66 +201,29 @@ class _BodyExpenseState extends State<BodyExpense> {
             ),
             Expanded(
               child: ListView.builder(
-                itemCount: expensesList.length,
-                shrinkWrap: true,
+                itemCount: expensesSearch.isNotEmpty
+                    ? expensesSearch.length
+                    : expensesList.length,
                 itemBuilder: (context, index) {
-                  var expense = expensesList[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 5,
-                      horizontal: 12,
-                    ),
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        color: Color.fromARGB(255, 225, 194, 233),
-                      ),
-                      child: ListTile(
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () {
-                            setState(() {
-                              deleteUser(expense.id ?? '');
-                            });
-                          },
-                        ),
-                        leading: IconButton(
-                          icon: Icon(
-                            expense.isPaid == false
-                                ? Icons.check_box_outline_blank
-                                : Icons.check_box,
-                            color: Colors.purple,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              updateExpense(
-                                expense.id ?? '',
-                                !expense.isPaid,
-                              );
-                            });
-                          },
-                        ),
-                        title: Text(expense.title),
-                        subtitle: Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(right: 180),
-                              child: Text(
-                                "R\$ ${expense.value}",
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 16.0),
-                              child: Text(
-                                expense.isPaid == false
-                                    ? 'PENDENTE'
-                                    : 'NÃO PENDENTE ',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  late ExpenseModel expense;
+                  if (expensesSearch.isEmpty) {
+                    expense = expensesList[index];
+                  } else {
+                    expense = expensesSearch[index];
+                  }
+                  return CardsExpenses(
+                    onDelete: () {
+                      setState(() {
+                        deleteUser(expense.id ?? '');
+                      });
+                    },
+                    isChecked: expense.isPaid,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        expense.isPaid = value!;
+                      });
+                    },
+                    onExpense: expense,
                   );
                 },
               ),

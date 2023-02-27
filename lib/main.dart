@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const AddUser('Aluguel', '2500', false),
+      home: const AddExpense('Aluguel', '2500', false),
     );
   }
 }
